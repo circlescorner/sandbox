@@ -1,0 +1,94 @@
+# Caddyfile for Orchestrator
+# Handles HTTPS, reverse proxy, and authentication
+
+{
+    email admin@{$DOMAIN:circlescorner.xyz}
+}
+
+{$DOMAIN:circlescorner.xyz} {
+    # Automatic HTTPS via Let's Encrypt
+
+    # Health check endpoint (no auth)
+    handle /health {
+        respond "OK" 200
+    }
+
+    # Setup endpoint (only works before TOTP is configured)
+    handle /setup* {
+        reverse_proxy control-panel:8000
+    }
+
+    # Login endpoint (no auth required)
+    handle /login* {
+        reverse_proxy control-panel:8000
+    }
+
+    # Static assets (no auth)
+    handle /static/* {
+        reverse_proxy control-panel:8000
+    }
+
+    # Auth verification endpoint (internal)
+    handle /auth/verify {
+        reverse_proxy control-panel:8000
+    }
+
+    # Web terminal - requires authentication
+    handle /terminal* {
+        # Forward auth to control panel
+        forward_auth control-panel:8000 {
+            uri /auth/verify
+            copy_headers X-User
+        }
+        reverse_proxy ttyd:7681
+    }
+
+    # API endpoints - require authentication
+    handle /api/* {
+        forward_auth control-panel:8000 {
+            uri /auth/verify
+            copy_headers X-User
+        }
+        reverse_proxy control-panel:8000
+    }
+
+    # Control panel UI - requires authentication
+    handle /* {
+        forward_auth control-panel:8000 {
+            uri /auth/verify
+            copy_headers X-User
+        }
+        reverse_proxy control-panel:8000
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' wss://{$DOMAIN:circlescorner.xyz}; img-src 'self' data:;"
+    }
+
+    # Rate limiting for login attempts
+    @login {
+        path /login
+        method POST
+    }
+    rate_limit @login {
+        zone login_limit {
+            key {remote_host}
+            events 5
+            window 1m
+        }
+    }
+
+    # Logging
+    log {
+        output file /data/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
