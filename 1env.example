@@ -1,0 +1,21 @@
+# Sandbox Network Configuration
+# Copy this file to .env and fill in your values
+
+# Your domain
+DOMAIN=circlescorner.xyz
+
+# DigitalOcean API Token (from https://cloud.digitalocean.com/account/api/tokens)
+DO_API_TOKEN=your_token_here
+
+# VPC UUID (from `doctl vpcs list` or DO console)
+VPC_UUID=your_vpc_uuid_here
+
+# Sandbox configuration
+SANDBOX_REGION=nyc1
+SANDBOX_SIZE=s-2vcpu-2gb
+
+# Sandbox snapshot ID (set after building first snapshot)
+SANDBOX_SNAPSHOT_ID=
+
+# RunPod API Key (optional, for container-4 LLM access)
+RUNPOD_API_KEY=
