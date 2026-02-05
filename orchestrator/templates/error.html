@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ code }} - Sandbox Orchestrator{% endblock %}
+
+{% block body %}
+<div class="center-content">
+    <div class="card auth-card" style="text-align: center;">
+        <h1 style="font-size: 4rem; margin-bottom: 1rem; color: var(--danger);">{{ code }}</h1>
+        <p style="font-size: 1.25rem; margin-bottom: 2rem;">{{ error }}</p>
+        <a href="/" class="btn btn-primary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

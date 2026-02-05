@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Setup - Sandbox Orchestrator{% endblock %}
+
+{% block body %}
+<div class="center-content">
+    <div class="card" style="max-width: 500px; width: 100%;">
+        <div class="card-header">
+            <h1 class="card-title">🔐 Initial Setup</h1>
+        </div>
+        
+        {% if error %}
+        <div class="alert alert-error">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+            Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
+        </p>
+        
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="background: white; padding: 1rem; display: inline-block; border-radius: 8px;">
+                <img src="data:image/png;base64,{{ qr_code }}" alt="TOTP QR Code" style="max-width: 200px;">
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">
+                Can't scan? Enter this key manually:
+            </p>
+            <code style="display: block; padding: 0.75rem; word-break: break-all; text-align: center;">
+                {{ secret }}
+            </code>
+        </div>
+        
+        <form method="POST" action="/setup">
+            <input type="hidden" name="secret" value="{{ secret }}">
+            
+            <div class="form-group">
+                <label class="form-label" for="totp_code">Verification Code</label>
+                <input 
+                    type="text" 
+                    id="totp_code" 
+                    name="totp_code" 
+                    class="form-input"
+                    placeholder="Enter 6-digit code from app"
+                    pattern="[0-9]{6}"
+                    maxlength="6"
+                    inputmode="numeric"
+                    required
+                >
+                <small style="color: var(--text-secondary); display: block; margin-top: 0.5rem;">
+                    Enter the code shown in your authenticator to verify setup
+                </small>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Complete Setup
+            </button>
+        </form>
+        
+        <div class="alert" style="background: rgba(210, 153, 34, 0.15); border: 1px solid var(--warning); color: var(--warning); margin-top: 1.5rem;">
+            <strong>⚠️ Important:</strong> Save a backup of the secret key above. If you lose access to your authenticator, you'll need it to recover your account.
+        </div>
+    </div>
+</div>
+{% endblock %}
