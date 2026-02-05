@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"  # For ACME challenge, redirects to HTTPS
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - frontend
+    depends_on:
+      - control-panel
+      - ttyd
+
+  # Control panel with TOTP auth
+  control-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: control-panel
+    restart: unless-stopped
+    environment:
+      - DOMAIN=${DOMAIN:-circlescorner.xyz}
+      - DO_API_TOKEN=${DO_API_TOKEN}
+      - VPC_UUID=${VPC_UUID}
+      - SANDBOX_SNAPSHOT_ID=${SANDBOX_SNAPSHOT_ID:-}
+      - SANDBOX_REGION=${SANDBOX_REGION:-nyc1}
+      - SANDBOX_SIZE=${SANDBOX_SIZE:-s-2vcpu-2gb}
+    volumes:
+      - ./data:/app/data  # Persistent storage for TOTP secret, session data
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For local docker info
+    networks:
+      - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Web terminal - proxied through control panel auth
+  ttyd:
+    image: tsl0922/ttyd:latest
+    container_name: ttyd
+    restart: unless-stopped
+    # No auth here - Caddy + control-panel handle auth via forward_auth
+    command: >
+      ttyd
+      --port 7681
+      --writable
+      --base-path /terminal
+      /bin/bash
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts:/scripts:ro
+    networks:
+      - frontend
+    # ttyd runs as root to allow docker commands
+    # Security: only accessible via authenticated proxy
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  frontend:
+    driver: bridge
